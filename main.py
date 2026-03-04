@@ -8,12 +8,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Text
 from functools import wraps
+
 from http import HTTPStatus
 #from sqlalchemy.testing.pickleable import User
 from werkzeug.security import generate_password_hash, check_password_hash
 # Import your forms from the forms.py
-from forms import CreatePostForm, RegisterForm, LoginForm
+from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 
+from typing import List
+from sqlalchemy import ForeignKey
 '''
 Make sure the required packages are installed: 
 Open the Terminal in PyCharm (bottom left). 
@@ -46,25 +49,47 @@ db.init_app(app)
 
 
 # CONFIGURE TABLES
+
+# Create a User table for all your registered users.
+
+class User(UserMixin, db.Model): # UserMixin contains some special attributes and methods required for the log in
+    __tablename__ = "user_table"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(100), unique=True)
+    password: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(1000))
+    posts = relationship("BlogPost", back_populates="author")
+    comments = relationship("Comment", back_populates="author")
+
+
 class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
+    __tablename__ = "blog_posts_table"
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
     subtitle: Mapped[str] = mapped_column(String(250), nullable=False)
     date: Mapped[str] = mapped_column(String(250), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    author: Mapped[str] = mapped_column(String(250), nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
 
+    author_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("user_table.id"))
+    author = relationship("User", back_populates="posts")
 
-# Create a User table for all your registered users.
+    comments = relationship("Comment", back_populates="post")
 
-class User(UserMixin, db.Model): # UserMixin contains some special attributes and methods required for the log in
+class Comment(db.Model):
+
+    __tablename__ = "comment_table"
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(100), unique=True)
-    password: Mapped[str] = mapped_column(String(100))
-    name: Mapped[str] = mapped_column(String(1000))
+    text: Mapped[str] = mapped_column(String(250), nullable=False)
 
+    post_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("blog_posts_table.id"))
+    post = relationship("BlogPost", back_populates="comments")
+
+    author_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("user_table.id"))
+    author = relationship("User", back_populates="comments")
 # Create user_loader callback
 
 @login_manager.user_loader
@@ -146,10 +171,37 @@ def get_all_posts():
 
 
 # Allow logged-in users to comment on posts
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
-    return render_template("post.html", post=requested_post, logged_in = current_user.is_authenticated)
+
+    result = db.session.execute(db.select(Comment))
+    comments = result.scalars()
+
+    form = CommentForm()
+
+    if form.validate_on_submit():
+
+        # Add the new entry
+
+        new_comment = Comment(
+            text = form.body.data,
+            post = requested_post,
+            author=current_user,
+        )
+
+        db.session.add(new_comment)
+        db.session.commit()
+
+        return redirect(url_for("show_post", post_id=post_id, comments=comments, logged_in = current_user.is_authenticated))
+
+    return render_template(
+        "post.html",
+        post=requested_post,
+        logged_in = current_user.is_authenticated,
+        form = form,
+        comments = comments
+    )
 
 def admin_only(f):
     @wraps(f)

@@ -10,7 +10,7 @@
           <h2 class="subheading">{{ post.subtitle }}</h2>
           <span class="meta"
             >Posted by
-            <a href="#">{{ post.author }}</a>
+            <a href="#">{{ post.author.name }}</a>
             on {{ post.date }}
           </span>
         </div>
@@ -35,19 +35,30 @@
           </div>
         {% endif %}
         <!-- Comments Area -->
-        <!-- TODO: Add a CKEditor for commenting below -->
+        <form action="{{ url_for('show_post', post_id=post.id) }}" method="POST">
+          {{ form.hidden_tag() }}
+          {{ form.body }}<br>
+          {{ form.submit }}
+        </form>
+
+        {{ ckeditor.load() }} {{ ckeditor.config(name='body') }}
+
         <div class="comment">
-          <!-- TODO: Show all the comments on a post -->
+
           <ul class="commentList">
-            <li>
-              <div class="commenterImage">
-                <img src="../static/assets/img/default-profile.jpg" />
-              </div>
-              <div class="commentText">
-                <p>Some comment</p>
-                <span class="date sub-text">comment author name</span>
-              </div>
-            </li>
+
+            {% for comment in comments %}
+              <li>
+                <div class="commenterImage">
+                  <img src="../static/assets/img/default-profile.jpg" />
+                </div>
+                <div class="commentText">
+                  <p>{{ comment.text|safe }}</p>
+                  <span class="date sub-text">{{ comment.author.name }}</span>
+                </div>
+              </li>
+            {% endfor %}
+
           </ul>
         </div>
       </div>
