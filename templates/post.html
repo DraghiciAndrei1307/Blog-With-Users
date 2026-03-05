@@ -35,32 +35,38 @@
           </div>
         {% endif %}
         <!-- Comments Area -->
-        <form action="{{ url_for('show_post', post_id=post.id) }}" method="POST">
-          {{ form.hidden_tag() }}
-          {{ form.body }}<br>
-          {{ form.submit }}
-        </form>
 
-        {{ ckeditor.load() }} {{ ckeditor.config(name='body') }}
+        {% if logged_in %}
 
-        <div class="comment">
+          <form action="{{ url_for('show_post', post_id=post.id) }}" method="POST">
+            {{ form.hidden_tag() }}
+            {{ form.body }}<br>
+            {{ form.submit }}
+          </form>
 
-          <ul class="commentList">
+          {{ ckeditor.load() }} {{ ckeditor.config(name='body') }}
 
-            {% for comment in comments %}
-              <li>
-                <div class="commenterImage">
-                  <img src="../static/assets/img/default-profile.jpg" />
-                </div>
-                <div class="commentText">
-                  <p>{{ comment.text|safe }}</p>
-                  <span class="date sub-text">{{ comment.author.name }}</span>
-                </div>
-              </li>
-            {% endfor %}
+          <div class="comment">
 
-          </ul>
-        </div>
+            <ul class="commentList">
+
+              {% for comment in comments %}
+                <li>
+                  <div class="commenterImage">
+                    <img src="../static/assets/img/default-profile.jpg" />
+                  </div>
+                  <div class="commentText">
+                    <p>{{ comment.text|safe }}</p>
+                    <span class="date sub-text">{{ comment.author.name }}</span>
+                  </div>
+                </li>
+              {% endfor %}
+
+            </ul>
+          </div>
+
+        {% endif %}
+
       </div>
     </div>
   </div>
