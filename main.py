@@ -46,14 +46,14 @@ login_manager.init_app(app)
 # CREATE DATABASE
 class Base(DeclarativeBase):
     pass
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///posts.db")
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
-
 # CONFIGURE TABLES
 
-# Create a User table for all your registered users.
+# User model to create a table for all registered users.
 
 class User(UserMixin, db.Model): # UserMixin contains some special attributes and methods required for the log in
     __tablename__ = "user_table"
@@ -62,9 +62,11 @@ class User(UserMixin, db.Model): # UserMixin contains some special attributes an
     email: Mapped[str] = mapped_column(String(100), unique=True)
     password: Mapped[str] = mapped_column(String(100))
     name: Mapped[str] = mapped_column(String(1000))
+
     posts = relationship("BlogPost", back_populates="author")
     comments = relationship("Comment", back_populates="author")
 
+# BlogPost model to create a table for all blog posts created by the admin users
 
 class BlogPost(db.Model):
     __tablename__ = "blog_posts_table"
@@ -81,6 +83,8 @@ class BlogPost(db.Model):
 
     comments = relationship("Comment", back_populates="post")
 
+# Comment model to create a table for all comments created by registered users
+
 class Comment(db.Model):
 
     __tablename__ = "comment_table"
@@ -93,16 +97,15 @@ class Comment(db.Model):
 
     author_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("user_table.id"))
     author = relationship("User", back_populates="comments")
+
+with app.app_context():
+    db.create_all()
+
 # Create user_loader callback
 
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.execute(db.select(User).where(User.id == user_id)).scalar()
-
-
-with app.app_context():
-    db.create_all()
-
 
 # Use Werkzeug to hash the user's password when creating a new user.
 @app.route('/register', methods=["GET", "POST"])

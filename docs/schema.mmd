@@ -1,0 +1,37 @@
+---
+Flask ER Diagram
+---
+erDiagram
+    %%------------------------------------------------------------------------------------------------------------------
+    %% Definitions
+    %%------------------------------------------------------------------------------------------------------------------
+
+    User{
+        Integer id
+        String email
+        String password
+        String name
+    }
+
+    BlogPost{
+        Integer id
+        String title
+        String Subtitle
+        String date
+        Text body
+        String img_url
+    }
+
+    Comment{
+        Integer id
+        String text
+    }
+
+    %%------------------------------------------------------------------------------------------------------------------
+    %% Relationships
+    %%------------------------------------------------------------------------------------------------------------------
+
+    User ||--|{ BlogPost : blog_post
+    User ||--|{ Comment : comment
+    BlogPost ||--|{ Comment : comment
+
